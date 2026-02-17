@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gpc-geo-location-finder/internal"
 	"github.com/gpc-geo-location-finder/models"
 )
@@ -17,9 +17,9 @@ type HandlerOptions struct {
 	Timeout   time.Duration
 }
 
-// HandleCheckPing returns an HTTP handler function that checks all endpoints
+// HandleCheckPing returns a Gin handler function that checks all endpoints
 // and returns a JSON summary of response times.
-func HandleCheckPing(opts HandlerOptions) http.HandlerFunc {
+func HandleCheckPing(opts HandlerOptions) gin.HandlerFunc {
 	if opts.Timeout == 0 {
 		opts.Timeout = 30 * time.Second
 	}
@@ -30,20 +30,16 @@ func HandleCheckPing(opts HandlerOptions) http.HandlerFunc {
 		}
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), opts.Timeout)
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), opts.Timeout)
 		defer cancel()
 
 		// Add CORS headers
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Cache-Control", "no-store")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Cache-Control", "no-store")
 
 		summary := internal.CheckAllEndpoints(ctx, opts.Endpoints, opts.Client)
 
-		if err := json.NewEncoder(w).Encode(summary); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-			return
-		}
+		c.JSON(http.StatusOK, summary)
 	}
 }

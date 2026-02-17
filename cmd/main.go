@@ -24,6 +24,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/gpc-geo-location-finder/handlers"
 	"github.com/gpc-geo-location-finder/models"
@@ -63,18 +64,16 @@ func main() {
 		Timeout: 10 * time.Second,
 	}
 
-	// Setup routes
-	mux := http.NewServeMux()
+	// Setup Gin router
+	router := gin.Default()
 
 	// Health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	// Main checkPing endpoint
-	mux.HandleFunc("/api/checkPing", handlers.HandleCheckPing(handlers.HandlerOptions{
+	router.GET("/api/checkPing", handlers.HandleCheckPing(handlers.HandlerOptions{
 		Endpoints: endpoints,
 		Client:    client,
 		Timeout:   *timeout,
@@ -83,7 +82,7 @@ func main() {
 	// Create server
 	server := &http.Server{
 		Addr:         ":" + listenPort,
-		Handler:      mux,
+		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

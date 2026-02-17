@@ -11,23 +11,23 @@ RUN go mod download
 COPY . .
 
 # Build the checkping service
-RUN CGO_ENABLED=0 GOOS=linux go build -o checkping-service ./cmd/checkping
+RUN CGO_ENABLED=0 GOOS=linux go build -o checkping-service ./cmd/main.go
 
 # Runtime stage
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata wget
 
 WORKDIR /app
 
 # Copy binary
 COPY --from=builder /app/checkping-service .
 
-# Copy endpoints JSON file
-COPY --from=builder /app/internal/config/endpoints.json ./internal/config/endpoints.json
+# Copy endpoints JSON file to /app/endpoints.json
+COPY --from=builder /app/endpoints.json ./endpoints.json
 
-# Create directory structure for endpoints.json
-RUN mkdir -p internal/config
+# Set default environment variable for endpoints file path
+ENV ENDPOINTS_FILE_PATH=/app/endpoints.json
 
 EXPOSE 8080
 
